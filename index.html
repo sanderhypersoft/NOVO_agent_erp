@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hyper Agent | AI SQL Analyst</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600&family=Inter:wght@300;400;500&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="index.css">
+</head>
+<body class="dark-theme">
+    <div class="app-container">
+        <aside class="sidebar">
+            <div class="logo-container">
+                <div class="logo-icon">H</div>
+                <h1>Hyper Agent</h1>
+            </div>
+            <div class="sidebar-content">
+                <button class="new-chat-btn">
+                    <span>+</span> Novo Chat
+                </button>
+                <div class="history-label">Recentes</div>
+                <div class="chat-history" id="chatHistory">
+                    <!-- History items will appear here -->
+                </div>
+            </div>
+            <div class="sidebar-footer">
+                <div class="status-indicator">
+                    <span class="dot online"></span>
+                    Hybrid Mode Active
+                </div>
+            </div>
+        </aside>
+
+        <main class="chat-area">
+            <header class="chat-header">
+                <div class="header-info">
+                    <h2>Assistente Analista</h2>
+                    <p>Conectado a Supabase & Firebird</p>
+                </div>
+            </header>
+
+            <div class="messages-container" id="messagesContainer">
+                <div class="welcome-message">
+                    <div class="welcome-icon">⚡</div>
+                    <h3>Olá! Como posso ajudar com seus dados hoje?</h3>
+                    <p>Tente perguntar: "Qual foi o faturamento de hoje?" ou "Quais clientes estão inadimplentes?"</p>
+                </div>
+            </div>
+
+            <footer class="input-area">
+                <div class="input-wrapper">
+                    <textarea id="userInput" placeholder="Digite sua pergunta aqui..." rows="1"></textarea>
+                    <button id="sendBtn" class="send-btn">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
+                    </button>
+                </div>
+                <p class="disclaimer">O Agente Hyper pode cometer erros. Verifique informações importantes.</p>
+            </footer>
+        </main>
+    </div>
+    <script src="index.js"></script>
+</body>
+</html>

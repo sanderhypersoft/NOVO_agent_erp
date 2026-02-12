@@ -8,8 +8,20 @@
   ],
   "routes": [
     {
-      "src": "/(.*)",
+      "src": "/ask",
       "dest": "api.py"
+    },
+    {
+      "src": "/index.js",
+      "dest": "index.js"
+    },
+    {
+      "src": "/index.css",
+      "dest": "index.css"
+    },
+    {
+      "src": "/(.*)",
+      "dest": "index.html"
     }
   ]
 }
