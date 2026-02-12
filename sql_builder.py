@@ -1,0 +1,258 @@
+"""
+SQL Builder V2
+Responsável APENAS por gerar SQL seguro e determinístico.
+
+- NÃO interpreta linguagem natural
+- NÃO decide regra
+- NÃO resolve ambiguidade
+- NÃO executa query
+
+Recebe um contexto já validado e autorizado.
+"""
+
+from agent_state import AgentState
+
+
+class SQLBuilder:
+
+    def __init__(self, semantic_dictionary, operational_dictionary):
+        self.semantic_dictionary = semantic_dictionary
+        self.dictionary = operational_dictionary
+
+    def run(self, context):
+        intent = context.data.get("intent")
+        semantic = context.data.get("semantic_resolution")
+
+        if not intent or not semantic:
+            context.state = AgentState.FAIL
+            context.errors.append("Contexto insuficiente para geração de SQL")
+            return context
+
+        try:
+            sql = self._build_sql(intent, semantic)
+        except Exception as e:
+            context.state = AgentState.FAIL
+            context.errors.append(str(e))
+            return context
+
+        context.data["sql"] = sql
+        if context.state != AgentState.PARTIAL:
+            context.state = AgentState.OK
+        return context
+
+    # ======================================================
+    # SQL CORE
+    # ======================================================
+
+    def _build_sql(self, intent, semantic):
+        intent_type = semantic.get("intent_type", "detail")
+        metrics = semantic.get("metrics", [])
+        entities = semantic.get("entities", [])
+        states = semantic.get("states", [])
+        time_refs = semantic.get("time_refs", [])
+        
+        if not entities:
+            raise ValueError("Nenhuma entidade identificada na pergunta")
+
+        # 1. Determinar Tabelas Envolvidas
+        tables = [self.dictionary.get_table(e) for e in entities if self.dictionary.get_table(e)]
+        tables = list(set(tables)) # Unificar
+        
+        # 2. Definir Colunas (SELECT)
+        
+        # 2. Definir Colunas (SELECT) e Identificar Agregações
+        
+        select_parts = []
+        aggregations = []
+        dimensions = []
+        
+        # Processar Métricas (Agregações)
+        if metrics:
+            for m in metrics:
+                # Determina a tabela de contexto para a métrica
+                # Se "venda" está nas entidades, usa VENDAS, senão tenta inferir do required_context
+                context_table = None
+                if "venda" in entities:
+                    context_table = self.dictionary.get_table("venda")
+                
+                metric_sql = self.dictionary.get_metric_sql(m, table_name=context_table)
+                
+                if metric_sql:
+                    select_parts.append(f"{metric_sql} AS {m.upper()}")
+                    # Verifica se é uma função de agregação primitiva
+                    if any(agg in metric_sql.upper() for agg in ["SUM(", "COUNT(", "AVG(", "MAX(", "MIN("]):
+                        aggregations.append(metric_sql)
+                    else:
+                        # Se métrica não tem função (ex: valor_unitario), é dimensão
+                        dimensions.append(metric_sql)
+
+        # Processar Dimensões e Entidades
+        # Se temos agregações, as entidades adicionais (não usadas na métrica) viram dimensões
+        # Se não temos agregações, é uma listagem detalhada
+        
+        if aggregations:
+            # Modo Agregação: entidades que não são a fonte da métrica viram GROUP BY
+            for entity in entities:
+                # Pula a entidade que já foi usada na métrica (ex: "venda" em "faturamento")
+                metric_def = self.dictionary.metrics.get(metrics[0]) if metrics else None
+                if metric_def and entity == metric_def.required_context:
+                    continue  # Não adiciona como dimensão, já está na agregação
+                
+                cols = self.dictionary.get_default_columns(entity)
+                table_name = self.dictionary.get_table(entity)
+                
+                if cols and table_name:
+                    for c in cols:
+                        if c != "*":  # Evita adicionar asterisco
+                            full_col = f"{table_name}.{c}"
+                            select_parts.append(full_col)
+                            dimensions.append(full_col)
+        else:
+            # Modo Detalhamento: lista colunas das entidades
+            for entity in entities:
+                cols = self.dictionary.get_default_columns(entity)
+                table_name = self.dictionary.get_table(entity)
+                
+                if cols and table_name:
+                    for c in cols:
+                        if c != "*":
+                            select_parts.append(f"{table_name}.{c}")
+                        else:
+                            select_parts.append(f"{table_name}.*")
+
+        # Se temos agregações mas nenhuma dimensão, tudo bem (Total Geral)
+        # Se temos agregações E dimensões, precisamos de GROUP BY
+        group_by_clause = ""
+        if aggregations and dimensions:
+             # GROUP BY deve conter todas as colunas não-agregadas do SELECT
+             # Filtra literais ou calc que não precisam estar no group by se necessário (simplificado por enquanto)
+             group_by_clause = " GROUP BY " + ", ".join(dimensions)
+
+        # 3. Construir Clausula FROM e JOINS
+        # Unificar todas as tabelas necessárias (entidades + filtros)
+        unique_tables = []
+        for t in tables:
+            if t not in unique_tables:
+                unique_tables.append(t)
+        
+        # Lógica de Bridge para Junções Indiretas
+        # Se temos VENDAS e PRODUTOS, garantimos ITENSV
+        if "PRODUTOS" in unique_tables and "VENDAS" in unique_tables and "ITENSV" not in unique_tables:
+            unique_tables.append("ITENSV")
+
+        # CRITICAL FIX: Priorizar tabela de contexto da métrica como primary_table
+        # Isso garante que regras de negócio sejam aplicadas na tabela correta
+        primary_table = None
+        
+        # Se temos métricas, usa a tabela de contexto da primeira métrica
+        if metrics:
+            metric_def = self.dictionary.metrics.get(metrics[0])
+            if metric_def and metric_def.required_context:
+                context_table = self.dictionary.get_table(metric_def.required_context)
+                if context_table:
+                    # Garante que a tabela de contexto está na lista
+                    if context_table not in unique_tables:
+                        unique_tables.append(context_table)
+                    primary_table = context_table
+        
+        # Fallback: usa a primeira tabela Fato na ordem de prioridade
+        if not primary_table:
+            priority_order = ["VENDAS", "RECEBER", "PAGAR", "ITENSV", "CLIENTES", "PRODUTOS"]
+            unique_tables.sort(key=lambda x: priority_order.index(x) if x in priority_order else 999)
+            primary_table = unique_tables[0]
+        
+        # Reordena unique_tables para colocar primary_table primeiro
+        if primary_table in unique_tables:
+            unique_tables.remove(primary_table)
+            unique_tables.insert(0, primary_table)
+        
+        from_clause = primary_table
+        joined_tables = {primary_table}
+        
+        # Tenta conectar todas as tabelas em um loop até não haver mais mudanças
+        changed = True
+        while changed and len(joined_tables) < len(unique_tables):
+            changed = False
+            for table in unique_tables:
+                if table not in joined_tables:
+                    for existing in list(joined_tables):
+                        condition = self.dictionary.get_join_condition(existing, table)
+                        if condition:
+                            from_clause += f" JOIN {table} ON {condition}"
+                            joined_tables.add(table)
+                            changed = True
+                            break
+
+        # 4. Construir Clausula WHERE (Filtros e Regras)
+        where_clauses = []
+        
+        # Injeção de Regras baseadas em Estados e Métricas
+        # Pega as regras associadas aos conceitos resolvidos
+        for concept_id in (states + metrics):
+            concept = self.semantic_dictionary.get(concept_id)
+            if concept:
+                for rule_name in concept.regras:
+                    rule_sql = self.dictionary.get_rule_sql(rule_name)
+                    if rule_sql:
+                        # Tenta qualificar a regra com a tabela principal se ela não tiver qualificação
+                        if "." not in rule_sql:
+                            # Se a regra for sobre STATUS e a tabela principal for VENDAS
+                            where_clauses.append(f"{primary_table}.{rule_sql}")
+                        else:
+                            where_clauses.append(rule_sql)
+
+        # Filtros de Tempo
+        time_where_clauses = []
+        for time_ref in time_refs:
+            if isinstance(time_ref, dict):
+                # FIXED: Prioritize 'venda' for date if present in entities, regardless of order
+                entity_for_date = "venda" if "venda" in entities else entities[0]
+                table_name = self.dictionary.get_table(entity_for_date)
+                date_col = self.dictionary.get_date_column(table_name)
+                
+                if date_col and table_name:
+                    time_where_clauses.append(
+                        f"{table_name}.{date_col} BETWEEN '{time_ref['start']}' AND '{time_ref['end']}'"
+                    )
+        where_clauses.extend(time_where_clauses)
+
+        # 5. Montagem Final
+        # Verifica Modificadores (LIMIT / ORDER BY)
+        modifiers = semantic.get("modifiers", [])
+        limit_clause = ""
+        order_by_clause = ""
+        
+        if "ultimas" in modifiers:
+            limit_clause = "FIRST 10"
+            # Tenta ordenar pela data da tabela principal
+            date_col = self.dictionary.get_date_column(primary_table)
+            if date_col:
+                order_by_clause = f" ORDER BY {primary_table}.{date_col} DESC"
+
+        # Special Case: Exclusão Financeira
+        # Se 'exclusoes' está nos estados, precisamos selecionar quem excluiu e o motivo
+        if "exclusoes" in states:
+            # Fallback para colunas de auditoria comuns
+            audit_cols = ["USUARIO_EXCLUSAO", "DATA_EXCLUSAO", "MOTIVO_EXCLUSAO"]
+            available_fields = [f["field"] for f in self.dictionary.get_fields(primary_table)]
+            for col in audit_cols:
+                if col in available_fields:
+                    select_parts.append(f"{primary_table}.{col}")
+        
+        # Injeta LIMIT no SELECT (Firebird Syntax: SELECT FIRST N ...)
+        select_clause = f"SELECT {limit_clause} {', '.join(select_parts)}" if limit_clause else f"SELECT {', '.join(select_parts)}"
+        
+        sql = f"{select_clause} FROM {from_clause}"
+        if where_clauses:
+            # Unificar Where Clauses (evitar duplicatas)
+            where_clauses = list(set(where_clauses))
+            sql += " WHERE " + " AND ".join(where_clauses)
+        
+        # Inserir GROUP BY antes do ORDER BY
+        if group_by_clause:
+            sql += group_by_clause
+
+        if order_by_clause:
+            sql += order_by_clause
+            
+        return sql

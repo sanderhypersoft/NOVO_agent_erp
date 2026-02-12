@@ -1,0 +1,26 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+.venv/
+venv/
+ENV/
+env/
+
+# Environment variables
+.env
+
+# Logs and databases
+*.log
+master_schema.json
+Dicionario_Operacional_MVP.xlsx
+*.xlsx
+*.csv
+*.txt
+*.json
+!vercel.json
+!key_tables_structure.json
+
+# IDEs
+.vscode/
+.idea/
