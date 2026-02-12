@@ -1,8 +1,26 @@
 {
+  "version": 2,
+  "functions": {
+    "api/index.py": {
+      "runtime": "@vercel/python"
+    }
+  },
   "rewrites": [
     {
       "source": "/ask",
-      "destination": "/api"
+      "destination": "/api/index.py"
+    },
+    {
+      "source": "/index.js",
+      "destination": "/index.js"
+    },
+    {
+      "source": "/index.css",
+      "destination": "/index.css"
+    },
+    {
+      "source": "/(.*)",
+      "destination": "/index.html"
     }
   ]
 }
