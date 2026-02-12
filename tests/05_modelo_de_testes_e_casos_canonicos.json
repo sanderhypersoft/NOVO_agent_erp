@@ -1,0 +1,151 @@
+# Modelo de Testes e Casos Canônicos do Agente ERP
+
+## Objetivo
+Definir **como o agente deve ser testado**, quais comportamentos são esperados e **quais falhas são aceitáveis**.
+
+Este documento transforma opinião em **critério técnico verificável**.
+
+---
+
+## Princípios de Teste
+
+1. Testar etapas do pipeline, não apenas o SQL
+2. Falhar corretamente é sucesso
+3. Ambiguidade esperada ≠ erro
+4. Score baixo com resposta é defeito
+
+---
+
+## Estrutura de um Caso de Teste
+
+Cada teste deve declarar explicitamente:
+
+```
+Pergunta:
+Intencao_Esperada:
+Conceitos_Esperados:
+Entidades_Esperadas:
+Estado_Esperado:
+Score_Minimo:
+SQL_Esperado:
+Observacoes:
+```
+
+---
+
+## 1. Casos Simples (Determinísticos)
+
+### Caso 1 — Faturamento do mês atual
+- Pergunta: Qual foi o faturamento do mês atual?
+- Intencao_Esperada: calcular_metrica
+- Conceitos_Esperados: [faturamento, mes_atual]
+- Entidades_Esperadas: [venda]
+- Estado_Esperado: OK
+- Score_Minimo: 90
+- SQL_Esperado: SIM
+- Observacoes: Deve considerar apenas vendas concluídas
+
+---
+
+### Caso 2 — Quantidade de vendas concluídas
+- Pergunta: Quantas vendas concluídas tivemos hoje?
+- Intencao_Esperada: calcular_metrica
+- Conceitos_Esperados: [quantidade_vendas, venda_concluida]
+- Entidades_Esperadas: [venda]
+- Estado_Esperado: OK
+- Score_Minimo: 90
+- SQL_Esperado: SIM
+
+---
+
+## 2. Casos Moderados (Regras e Restrições)
+
+### Caso 3 — Ticket médio por cliente
+- Pergunta: Qual é o ticket médio por cliente no mês atual?
+- Intencao_Esperada: calcular_metrica
+- Conceitos_Esperados: [ticket_medio, mes_atual]
+- Entidades_Esperadas: [venda, cliente]
+- Estado_Esperado: PARTIAL
+- Score_Minimo: 70
+- SQL_Esperado: SIM
+- Observacoes: Pode exigir agrupamento explícito
+
+---
+
+### Caso 4 — Inadimplência atual
+- Pergunta: Qual é o valor da inadimplência hoje?
+- Intencao_Esperada: calcular_indicador
+- Conceitos_Esperados: [inadimplencia]
+- Entidades_Esperadas: [titulo_receber]
+- Estado_Esperado: OK
+- Score_Minimo: 85
+- SQL_Esperado: SIM
+
+---
+
+## 3. Casos Complexos (Ambiguidade Controlada)
+
+### Caso 5 — Vendas do mês
+- Pergunta: Quanto vendemos neste mês?
+- Intencao_Esperada: calcular_metrica
+- Conceitos_Esperados: [faturamento, mes_atual]
+- Entidades_Esperadas: [venda]
+- Estado_Esperado: AMBIGUOUS
+- Score_Minimo: 0
+- SQL_Esperado: NAO
+- Observacoes: Não define se exclui vendas canceladas
+
+---
+
+### Caso 6 — Performance por forma de pagamento
+- Pergunta: Qual a performance de vendas por forma de pagamento?
+- Intencao_Esperada: comparar_dimensoes
+- Conceitos_Esperados: [faturamento]
+- Entidades_Esperadas: [venda, pagamento]
+- Estado_Esperado: PARTIAL
+- Score_Minimo: 60
+- SQL_Esperado: SIM
+- Observacoes: Forma de pagamento não detalhada
+
+---
+
+## 4. Casos de Falha Esperada
+
+### Caso 7 — Métrica inexistente
+- Pergunta: Qual o índice de felicidade dos clientes?
+- Intencao_Esperada: indefinida
+- Conceitos_Esperados: []
+- Entidades_Esperadas: []
+- Estado_Esperado: FAIL
+- Score_Minimo: 0
+- SQL_Esperado: NAO
+
+---
+
+### Caso 8 — Entidades incompatíveis
+- Pergunta: Total de vendas pagas por títulos a pagar
+- Intencao_Esperada: calcular_metrica
+- Conceitos_Esperados: [faturamento]
+- Entidades_Esperadas: [venda, titulo_pagar]
+- Estado_Esperado: FAIL
+- Score_Minimo: 0
+- SQL_Esperado: NAO
+
+---
+
+## 5. Critérios de Sucesso do MVP
+
+O MVP é considerado funcional quando:
+
+- Casos simples ≥ 95% OK
+- Casos moderados ≥ 80% OK ou PARTIAL
+- Casos complexos ≥ 70% AMBIGUOUS ou PARTIAL corretos
+- Casos de falha = 100% FAIL
+
+---
+
+## Encerramento
+
+Este documento é o **termômetro oficial da evolução do agente**.
+
+Sem passar nesses testes, o agente **não pode ir para produção**.
