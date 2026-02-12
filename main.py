@@ -1,12 +1,7 @@
 from fastapi import FastAPI, Request
-import os
-import sys
-
-# Ajuste de path para que a função na pasta /api enxergue o root do projeto
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
-
 from pipeline_executor import PipelineExecutor
 from agent_state import AgentState
+import os
 
 app = FastAPI()
 
