@@ -12,14 +12,15 @@ env/
 
 # Logs and databases
 *.log
-master_schema.json
 Dicionario_Operacional_MVP.xlsx
 *.xlsx
 *.csv
 *.txt
-*.json
+
+# Allow specific config files
 !vercel.json
 !key_tables_structure.json
+!master_schema.json
 
 # IDEs
 .vscode/
