@@ -19,6 +19,7 @@ Dicionario_Operacional_MVP.xlsx
 
 # Allow specific config files
 !vercel.json
+!runtime.txt
 !key_tables_structure.json
 !master_schema.json
 
