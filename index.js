@@ -43,6 +43,7 @@ async function handleSend() {
         });
 
         const data = await response.json();
+        console.log("Hyper Agent Response:", data);
         removeTypingIndicator(typingId);
 
         if (data.error) {
