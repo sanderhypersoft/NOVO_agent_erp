@@ -1,0 +1,9 @@
+fastapi
+uvicorn
+supabase
+python-dotenv
+pandas
+openpyxl
+httpx
+google-generativeai
+jinja2
