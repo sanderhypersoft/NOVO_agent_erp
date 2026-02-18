@@ -30,9 +30,17 @@ async def ask(request: Request):
             "question": question,
             "sql": context.data.get("sql"),
             "state": context.state.name,
+            "results": context.data.get("results"),
+            "columns": context.data.get("columns"),
+            "note": context.data.get("results_note"),
+            "execution_error": context.data.get("execution_error"),
             "errors": context.errors,
             "warnings": context.data.get("rule_warnings", []),
-            "confidence": context.data.get("confidence", 0.0)
+            "confidence": context.data.get("confidence", 0.0),
+            "debug": {
+                "intent": context.data.get("intent"),
+                "semantic": context.data.get("semantic_resolution")
+            }
         }
     except Exception as e:
         import traceback
@@ -40,5 +48,7 @@ async def ask(request: Request):
         return {
             "error": "Internal Server Error during execution",
             "message": str(e),
-            "traceback": error_details
+            "traceback": error_details,
+            "cwd": os.getcwd(),
+            "ls": os.listdir(".") if os.path.exists(".") else "None"
         }

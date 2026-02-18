@@ -4,7 +4,7 @@ const sendBtn = document.getElementById('sendBtn');
 const chatHistory = document.getElementById('chatHistory');
 
 // Auto-ajuste do textarea
-userInput.addEventListener('input', function() {
+userInput.addEventListener('input', function () {
     this.style.height = 'auto';
     this.style.height = (this.scrollHeight) + 'px';
 });
@@ -60,13 +60,13 @@ async function handleSend() {
 function addMessage(text, side, isError = false) {
     const msgDiv = document.createElement('div');
     msgDiv.className = `message ${side}`;
-    
+
     msgDiv.innerHTML = `
         <div class="message-bubble ${isError ? 'error' : ''}">
             ${text}
         </div>
     `;
-    
+
     messagesContainer.appendChild(msgDiv);
     scrollToBottom();
 }
@@ -74,10 +74,10 @@ function addMessage(text, side, isError = false) {
 function addAiResponse(data) {
     const msgDiv = document.createElement('div');
     msgDiv.className = 'message ai';
-    
+
     const confidence = data.confidence ? (data.confidence * 100).toFixed(0) : 0;
     const badgeClass = confidence > 70 ? 'badge-success' : 'badge-warning';
-    
+
     let html = `
         <div class="message-bubble">
             <div class="msg-header">
@@ -94,11 +94,32 @@ function addAiResponse(data) {
         html += `<div class="warnings">⚠️ <em>${data.warnings[0]}</em></div>`;
     }
 
+    if (data.results && data.results.length > 0) {
+        html += `<div class="results-table-container"><table><thead><tr>`;
+        data.columns.forEach(col => html += `<th>${col}</th>`);
+        html += `</tr></thead><tbody>`;
+        data.results.forEach(row => {
+            html += `<tr>`;
+            data.columns.forEach(col => html += `<td>${row[col] === null ? '-' : row[col]}</td>`);
+            html += `</tr>`;
+        });
+        html += `</tbody></table></div>`;
+    } else if (data.results && data.results.length === 0 && data.state === 'OK') {
+        html += `<div class="note">A consulta foi executada, mas não retornou registros.</div>`;
+    }
+
+    if (data.note) {
+        html += `<div class="note">ℹ️ ${data.note}</div>`;
+    }
+    if (data.execution_error) {
+        html += `<div class="error-msg">❌ Erro na execução: ${data.execution_error}</div>`;
+    }
+
     html += `</div>`;
     msgDiv.innerHTML = html;
-    
+
     messagesContainer.appendChild(msgDiv);
-    
+
     // Add to history
     addToHistory(data.question);
     scrollToBottom();
@@ -143,6 +164,6 @@ function addToHistory(question) {
     item.style.overflow = 'hidden';
     item.style.textOverflow = 'ellipsis';
     item.innerText = question;
-    
+
     chatHistory.prepend(item);
 }

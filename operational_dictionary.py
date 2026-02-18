@@ -73,8 +73,18 @@ class OperationalDictionary:
             self._load_fallbacks()
 
     def _load_fallbacks(self):
-        self.entity_map = {"venda": "VENDAS", "cliente": "CLIENTES", "produto": "PRODUTOS"}
-        # Fallback de métricas omitido por brevidade, mas o sistema deve usar Supabase agora.
+        self.entity_map = {
+            "venda": "VENDAS", 
+            "cliente": "CLIENTES", 
+            "produto": "PRODUTOS",
+            "os": "ORDEMSERVICOS",
+            "tecnico": "USUARIOS"
+        }
+        self.metrics["materiais_consumidos"] = MetricDefinition(
+            sql_template="SUM({table}.QTD)",
+            target_role=None, # Define explicitamente abaixo
+            required_context="os"
+        )
 
     def get_table(self, entity: str) -> Optional[str]:
         if entity.upper() in self.data.get("tables", {}):
@@ -102,7 +112,12 @@ class OperationalDictionary:
         field_name = self.get_field_by_role(target_table, definition.target_role)
         if field_name:
             return definition.sql_template.format(table=target_table, field=field_name)
-        return None
+        
+        # Fallback para métricas fixas (sem field_role)
+        if "{table}" in definition.sql_template and not field_name:
+             return definition.sql_template.format(table=target_table)
+             
+        return definition.sql_template
 
     def get_date_column(self, table_name: str) -> Optional[str]:
         col = self.get_field_by_role(table_name, "TEMPORAL")
@@ -114,7 +129,10 @@ class OperationalDictionary:
         bridges = {
             ("VENDAS", "ITENSV"): "VENDAS.CTRVENDA = ITENSV.CTRVENDA",
             ("ITENSV", "PRODUTOS"): "ITENSV.PRODUTO = PRODUTOS.CODIGO", 
-            ("VENDAS", "CLIENTES"): "VENDAS.CLIENTE = CLIENTES.CODIGO"
+            ("VENDAS", "CLIENTES"): "VENDAS.CLIENTE = CLIENTES.CODIGO",
+            ("ORDEMSERVICOS", "ITENSOS"): "ORDEMSERVICOS.CTROS = ITENSOS.CTROS",
+            ("ITENSOS", "PRODUTOS"): "ITENSOS.PRODUTO = PRODUTOS.CODIGO",
+            ("ORDEMSERVICOS", "USUARIOS"): "ORDEMSERVICOS.VENDEDOR = USUARIOS.CONTROLE"
         }
         return bridges.get((table_a.upper(), table_b.upper())) or bridges.get((table_b.upper(), table_a.upper()))
 

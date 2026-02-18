@@ -1,0 +1,14 @@
+[project]
+name = "novo-agent-erp"
+version = "0.1.0"
+dependencies = [
+    "fastapi",
+    "uvicorn",
+    "supabase",
+    "python-dotenv",
+    "pandas",
+    "openpyxl",
+    "httpx",
+    "google-generativeai",
+    "jinja2"
+]

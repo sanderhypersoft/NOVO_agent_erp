@@ -85,12 +85,16 @@ class SemanticDictionary:
             "receber": SemanticConcept(tipo="entidade", descricao="Títulos de contas a receber"),
             "pagar": SemanticConcept(tipo="entidade", descricao="Títulos de contas a pagar"),
             "os": SemanticConcept(tipo="entidade", descricao="Ordem de Serviço"),
-            "tecnico": SemanticConcept(tipo="entidade", descricao="Profissional técnico"),
+            "tecnico": SemanticConcept(
+                tipo="entidade", 
+                descricao="Profissional técnico",
+                aliases=["tecnico", "tecnicos", "colaborador"]
+            ),
             "fornecedor": SemanticConcept(tipo="entidade", descricao="Cadastro de fornecedores"),
             "materiais_consumidos": SemanticConcept(
                 tipo="metrica", 
                 descricao="Materiais utilizados em operações",
-                aliases=["materiais consumidos", "consumo"],
+                aliases=["materiais consumidos", "consumo", "consumidos", "materias consumidos", "materias"],
                 entidades=["os", "produto"]
             ),
             "hoje": SemanticConcept(tipo="tempo", descricao="Data atual"),

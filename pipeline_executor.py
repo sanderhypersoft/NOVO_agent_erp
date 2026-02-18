@@ -58,11 +58,29 @@ class PipelineExecutor:
             return context
 
         # 5. SQL BUILDER (Executa se OK ou PARTIAL)
-        self.sql_builder.run(context)
+        # 8. Geração de SQL
+        context = self.sql_builder.run(context)
         context = self.sql_validator.run(context)
-        context = self.confidence_calculator.run(context)
+        
+        # 9. EXECUÇÃO (Novo na V3 - Real Time Local)
+        sql = context.data.get("sql")
+        if sql and context.state == AgentState.OK:
+            try:
+                from firebird_executor import FirebirdExecutor
+                executor = FirebirdExecutor()
+                results = executor.execute(sql)
+                context.data["results"] = results
+                if results:
+                    context.data["columns"] = list(results[0].keys())
+                else:
+                    context.data["columns"] = []
+            except ImportError:
+                context.data["results_note"] = "Driver fdb não instalado. Execução real-time disponível apenas no modo LOCAL."
+            except Exception as e:
+                context.data["execution_error"] = str(e)
 
-        # 6. LOG DE INTELIGÊNCIA (Supabase)
+        # FINAL: Logar Inteligência
+        context = self.confidence_calculator.run(context)
         self.logger.log(context)
 
         return context
