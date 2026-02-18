@@ -1,0 +1,8 @@
+Ordem,Elemento SQL,Tabela,Campo,Papel REAL
+1,FROM,EXC_PAGAR,—,Tabela base
+2,WHERE,EXC_PAGAR,TIPO = 'E',Define exclusão
+3,LEFT JOIN,EXC_USUARIO,CTRMOVI = CONTROLE,Complemento
+4,JOIN COND,EXC_USUARIO,MOVI = 'PG',Tipo do evento
+5,SELECT,EXC_USUARIO,USUARIO,Auditoria
+6,SELECT,EXC_USUARIO,DATA,Data exclusão
+7,ORDER BY,EXC_USUARIO,DATA,Ordenação

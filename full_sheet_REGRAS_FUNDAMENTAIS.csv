@@ -1,0 +1,9 @@
+Categoria,Código,Regra,Quando Aplicar,Severidade,Origem
+Relacionamento,REGRA-CTR-001,Campos iniciados por CTR representam o mesmo identificador lógico,JOIN entre tabelas,BLOQUEANTE,Observação estrutural
+Exclusão,REGRA-EXC-001,Exclusão é determinada por campo de estado na tabela base,Consultas de exclusão,BLOQUEANTE,SQL-EXC-001
+Exclusão,REGRA-EXC-002,Tabelas de log não determinam se algo foi excluído,Sempre,BLOQUEANTE,SQL-EXC-001
+Auditoria,REGRA-EXC-003,Logs são usados apenas para enriquecer dados,JOIN com EXC_USUARIO,ALTA,SQL-EXC-001
+Auditoria,REGRA-EXC-004,JOIN com tabela de log deve ser LEFT JOIN,Auditoria,BLOQUEANTE,SQL-EXC-001
+Temporal,REGRA-DATA-001,Filtro temporal usa a data da tabela base,WHERE por período,BLOQUEANTE,SQL-EXC-001
+Classificação,REGRA-MOVI-001,Campo MOVI classifica o tipo de operação,Auditoria,ALTA,SQL-EXC-001
+Temporal,REGRA-DATA-002,"Quando a pergunta se refere à DATA DA AÇÃO (excluído quando, cancelado quando), usar EXC_USUARIO.DATA. Quando se refere à DATA DO TÍTULO (emitido quando, vencido quando), usar tabela base.","Perguntas sobre ""quando foi excluído"", ""excluídos nos últimos X dias""",BLOQUEANTE,SQL-EXC-001 (refinamento semântico)

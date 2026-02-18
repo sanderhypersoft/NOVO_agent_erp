@@ -21,8 +21,14 @@ Dicionario_Operacional_MVP.xlsx
 !vercel.json
 !runtime.txt
 !requirements.txt
-!key_tables_structure.json
 !master_schema.json
+!key_tables_structure.json
+!full_sheet_DICIONARIO_TABELAS.csv
+!full_sheet_DICIONARIO_SEMANTICO.csv
+!full_sheet_REGRAS.csv
+!full_sheet_REGRAS_FUNDAMENTAIS.csv
+!full_sheet_PRECEDENTES_SQL.csv
+!full_sheet_ENG_REV_SQL_EXCLUSAO_PAGAR.csv
 
 # IDEs
 .vscode/

@@ -22,14 +22,23 @@ async def ask(request: Request):
     if not question:
         return {"error": "Question is required"}
     
-    executor = PipelineExecutor()
-    context = executor.run(question)
-    
-    return {
-        "question": question,
-        "sql": context.data.get("sql"),
-        "state": context.state.name,
-        "errors": context.errors,
-        "warnings": context.data.get("rule_warnings", []),
-        "confidence": context.data.get("confidence", 0.0)
-    }
+    try:
+        executor = PipelineExecutor()
+        context = executor.run(question)
+        
+        return {
+            "question": question,
+            "sql": context.data.get("sql"),
+            "state": context.state.name,
+            "errors": context.errors,
+            "warnings": context.data.get("rule_warnings", []),
+            "confidence": context.data.get("confidence", 0.0)
+        }
+    except Exception as e:
+        import traceback
+        error_details = traceback.format_exc()
+        return {
+            "error": "Internal Server Error during execution",
+            "message": str(e),
+            "traceback": error_details
+        }

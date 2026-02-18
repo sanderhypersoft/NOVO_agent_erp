@@ -1,0 +1,9 @@
+Categoria,Tabela,Campo,Significado Operacional,Evidência
+Exclusão,EXC_PAGAR,TIPO,Estado do título (E = excluído),SQL-EXC-001
+Auditoria,EXC_USUARIO,USUARIO,Usuário que executou ação,SQL-EXC-001
+Auditoria,EXC_USUARIO,DATA,Data do registro do log,SQL-EXC-001
+Auditoria,EXC_USUARIO,CTRMOVI,Chave de ligação com evento,SQL-EXC-001
+Auditoria,EXC_USUARIO,MOVI,Tipo de operação (PG/RC),SQL-EXC-001
+Chave,*,CTR*,Identificador universal de evento,REGRA-CTR-001
+Temporal,EXC_PAGAR,EMISSAO,Data do evento financeiro (usar para filtros),SQL-EXC-001
+Identificação,EXC_PAGAR,CONTROLE,Chave primária do título,SQL-EXC-001

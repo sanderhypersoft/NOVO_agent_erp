@@ -6,19 +6,28 @@ load_dotenv()
 
 class SupabaseAdapter:
     def __init__(self):
-        url: str = os.environ.get("SUPABASE_URL")
-        key: str = os.environ.get("SUPABASE_KEY")
-        if not url or not key:
-            raise ValueError("SUPABASE_URL or SUPABASE_KEY not found in environment")
-        self.supabase: Client = create_client(url, key)
+        self.url: str = os.environ.get("SUPABASE_URL")
+        self.key: str = os.environ.get("SUPABASE_KEY")
+        self.supabase = None
+        
+        if self.url and self.key:
+            try:
+                self.supabase: Client = create_client(self.url, self.key)
+            except Exception as e:
+                print(f"DEBUG: Falha ao inicializar cliente Supabase: {e}")
+        else:
+            print("DEBUG: SUPABASE_URL ou SUPABASE_KEY não configurados.")
 
     def get_semantic_dictionary(self):
+        if not self.supabase: return None
         return self.supabase.table("semantic_dictionary").select("*").execute()
 
     def get_operational_dictionary(self):
+        if not self.supabase: return None
         return self.supabase.table("operational_dictionary").select("*").execute()
 
     def log_intelligence(self, data):
+        if not self.supabase: return None
         return self.supabase.table("intelligence_log").insert(data).execute()
 
     def upsert_semantic(self, data):

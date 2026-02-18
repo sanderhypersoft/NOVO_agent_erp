@@ -1,0 +1,9 @@
+ID,Descrição,SQL Completo,Data,Status
+SQL-EXC-001,Exclusão de contas a pagar,"SELECT ep.fornec, fc.fantasia, em.fantasia, ep.controle, ep.cont, ep.hist, 
+        ep.emissao, ep.vencto, ep.vrrest, eu.usuario, eu.data
+        FROM exc_pagar ep
+        LEFT JOIN exc_usuario eu ON eu.ctrmovi = ep.controle AND eu.movi = 'PG'
+        LEFT JOIN fornec fc ON fc.codigo = ep.fornec
+        LEFT JOIN empresas em ON em.codigo = ep.loja
+        WHERE ep.tipo = 'E'
+        ORDER BY eu.data DESC",2026-01-29,ATIVO
