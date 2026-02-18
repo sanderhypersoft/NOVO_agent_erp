@@ -139,6 +139,9 @@ class SQLBuilder:
         # Se temos VENDAS e PRODUTOS, garantimos ITENSV
         if "PRODUTOS" in unique_tables and "VENDAS" in unique_tables and "ITENSV" not in unique_tables:
             unique_tables.append("ITENSV")
+        
+        if "PRODUTOS" in unique_tables and "ORDEMSERVICOS" in unique_tables and "ITENSOS" not in unique_tables:
+            unique_tables.append("ITENSOS")
 
         # CRITICAL FIX: Priorizar tabela de contexto da métrica como primary_table
         # Isso garante que regras de negócio sejam aplicadas na tabela correta

@@ -95,7 +95,7 @@ class SemanticDictionary:
                 tipo="metrica", 
                 descricao="Materiais utilizados em operações",
                 aliases=["materiais consumidos", "consumo", "consumidos", "materias consumidos", "materias"],
-                entidades=["os", "produto"]
+                entidades=["os", "itensos", "produto"]
             ),
             "hoje": SemanticConcept(tipo="tempo", descricao="Data atual"),
             "ontem": SemanticConcept(tipo="tempo", descricao="Data anterior"),

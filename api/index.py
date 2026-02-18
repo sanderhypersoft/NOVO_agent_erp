@@ -36,10 +36,11 @@ async def ask(request: Request):
             "execution_error": context.data.get("execution_error"),
             "errors": context.errors,
             "warnings": context.data.get("rule_warnings", []),
-            "confidence": context.data.get("confidence", 0.0),
+            "confidence": context.score,
             "debug": {
                 "intent": context.data.get("intent"),
-                "semantic": context.data.get("semantic_resolution")
+                "semantic": context.data.get("semantic_resolution"),
+                "concepts_loaded": len(executor.semantic_dictionary.concepts) if hasattr(executor, 'semantic_dictionary') else 0
             }
         }
     except Exception as e:

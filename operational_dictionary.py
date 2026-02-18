@@ -82,8 +82,8 @@ class OperationalDictionary:
         }
         self.metrics["materiais_consumidos"] = MetricDefinition(
             sql_template="SUM({table}.QTD)",
-            target_role=None, # Define explicitamente abaixo
-            required_context="os"
+            target_role=None,
+            required_context="itensos"
         )
 
     def get_table(self, entity: str) -> Optional[str]:

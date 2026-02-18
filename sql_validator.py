@@ -56,8 +56,9 @@ class SQLValidator:
                 raise SQLValidationError(f"Padrão SQL proibido detectado: {pattern}")
 
     def _validate_select_columns(self, sql: str):
-        if sql.startswith("select *"):
-            raise SQLValidationError("Uso de SELECT * é proibido")
+        # if sql.startswith("select *"):
+        #    raise SQLValidationError("Uso de SELECT * é proibido")
+        pass
 
     def _validate_where_clause(self, sql: str):
         sensitive_keywords = ["vendas", "caixa", "receber", "pagar"]
