@@ -10,4 +10,3 @@ echo.
 echo ===========================================
 echo   SUCESSO! Deploy iniciado no Vercel.
 echo ===========================================
-pause
