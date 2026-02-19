@@ -197,12 +197,36 @@ class SQLBuilder:
                 for rule_name in concept.regras:
                     rule_sql = self.dictionary.get_rule_sql(rule_name)
                     if rule_sql:
-                        # Tenta qualificar a regra com a tabela principal se ela não tiver qualificação
-                        if "." not in rule_sql:
-                            # Se a regra for sobre STATUS e a tabela principal for VENDAS
-                            where_clauses.append(f"{primary_table}.{rule_sql}")
+                        # 4.1 Identifica campos na regra
+                        import re
+                        rule_fields = re.findall(r"([A-Za-z0-9_]+)\s*[=<>]+", rule_sql)
+                        
+                        # 4.2 Verifica quais campos existem na tabela principal
+                        available_fields = [f["field"].upper() for f in self.dictionary.get_fields(primary_table)]
+                        
+                        qualified_parts = []
+                        # Se a regra tem OR, processamos as partes
+                        if " OR " in rule_sql.upper():
+                            parts = re.split(r" OR ", rule_sql, flags=re.IGNORECASE)
+                            for part in parts:
+                                part_field_match = re.search(r"([A-Za-z0-9_]+)", part)
+                                if part_field_match:
+                                    f_name = part_field_match.group(1).upper()
+                                    if f_name in available_fields:
+                                        qualified_parts.append(f"{primary_table}.{part.strip()}")
                         else:
-                            where_clauses.append(rule_sql)
+                            # Regra simples
+                            f_name_match = re.search(r"([A-Za-z0-9_]+)", rule_sql)
+                            if f_name_match:
+                                f_name = f_name_match.group(1).upper()
+                                if f_name in available_fields:
+                                    qualified_parts.append(f"{primary_table}.{rule_sql.strip()}")
+                        
+                        if qualified_parts:
+                            if len(qualified_parts) > 1:
+                                where_clauses.append(f"({' OR '.join(qualified_parts)})")
+                            else:
+                                where_clauses.append(qualified_parts[0])
 
         # Filtros de Tempo
         time_where_clauses = []

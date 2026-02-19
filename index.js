@@ -76,7 +76,7 @@ function addAiResponse(data) {
     const msgDiv = document.createElement('div');
     msgDiv.className = 'message ai';
 
-    const confidence = data.confidence ? (data.confidence * 100).toFixed(0) : 0;
+    const confidence = data.confidence ? data.confidence : 0;
     const badgeClass = confidence > 70 ? 'badge-success' : 'badge-warning';
 
     let html = `
