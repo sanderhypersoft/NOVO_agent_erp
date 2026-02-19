@@ -61,10 +61,15 @@ class SQLValidator:
         pass
 
     def _validate_where_clause(self, sql: str):
-        sensitive_keywords = ["vendas", "caixa", "receber", "pagar"]
+        sensitive_keywords = ["vendas", "caixa", "receber", "pagar", "exc_pagar"]
         if any(k in sql for k in sensitive_keywords):
             if " where " not in sql:
                 raise SQLValidationError("Consultas sensíveis exigem cláusula WHERE")
+            
+            # Se for apenas 1=1, é um sinal de que o pipeline deve agir no modo proteção
+            if "where 1=1" in sql and " and " not in sql:
+                # Não lança erro, mas sinaliza (isso será tratado no PipelineExecutor)
+                pass
 
     def _validate_group_by(self, sql: str):
         aggregates = ["sum(", "count(", "avg("]

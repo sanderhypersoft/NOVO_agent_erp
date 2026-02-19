@@ -84,21 +84,45 @@ class PipelineExecutor:
     def _execute_sql_step(self, context: AgentContext):
         sql = context.data.get("sql")
         if sql and context.state in [AgentState.OK, AgentState.PARTIAL]:
+            # 1. Detecção de Consulta Sensível sem Filtro (Auto-Corrigida)
+            sql_clean = sql.lower().replace("\n", " ")
+            is_full_scan = "where 1=1" in sql_clean and " and " not in sql_clean
+            
             try:
                 from firebird_executor import FirebirdExecutor
                 executor = FirebirdExecutor()
+
+                # 2. Se for Full Scan, rodar COUNT(*) primeiro para contexto
+                if is_full_scan:
+                    import re
+                    table_match = re.search(r"FROM\s+([A-Za-z0-9_]+)", sql, re.IGNORECASE)
+                    if table_match:
+                        table_name = table_match.group(1)
+                        count_sql = f"SELECT COUNT(*) AS TOTAL FROM {table_name}"
+                        count_res = executor.execute(count_sql)
+                        if count_res:
+                            total = count_res[0].get("TOTAL")
+                            if "rule_warnings" not in context.data:
+                                context.data["rule_warnings"] = []
+                            context.data["rule_warnings"].append(
+                                f"Consulta geral em {table_name} (Total: {total}). Aplicada amostra FIRST 100."
+                            )
+                    
+                    # Força FIRST 100 se já não houver limite
+                    if "FIRST " not in sql.upper():
+                        sql = sql.replace("SELECT ", "SELECT FIRST 100 ", 1)
+
                 results = executor.execute(sql)
                 
-                # Acumula resultados (suporta múltiplos passos no futuro)
                 if "steps_results" not in context.data:
                     context.data["steps_results"] = []
                 
                 context.data["steps_results"].append({
                     "sql": sql,
-                    "results": results
+                    "results": results,
+                    "is_full_scan": is_full_scan
                 })
 
-                # Define o resultado principal para compatibilidade com UI atual
                 if not context.data.get("results"):
                     context.data["results"] = results
                     if results:

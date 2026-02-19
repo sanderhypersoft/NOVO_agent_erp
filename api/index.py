@@ -7,12 +7,35 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 from pipeline_executor import PipelineExecutor
 from agent_state import AgentState
+from firebird_schema_mapper import FirebirdSchemaMapper
 
 app = FastAPI()
 
 @app.get("/")
 def read_root():
     return {"status": "Hyper Agent is Running on Vercel", "version": "1.0-hybrid"}
+
+@app.post("/schema/map")
+async def map_schema(request: Request):
+    """
+    Retorna o mapeamento completo das tabelas e colunas do Firebird real.
+    """
+    try:
+        mapper = FirebirdSchemaMapper()
+        tables = mapper.get_tables()
+        schema_map = {}
+        
+        # Opcional: limitar para evitar timeout se houver muitas tabelas
+        for t in tables[:100]: 
+            schema_map[t] = mapper.get_columns(t)
+            
+        return {
+            "status": "success",
+            "total_tables": len(tables),
+            "schema": schema_map
+        }
+    except Exception as e:
+        return {"status": "error", "message": str(e)}
 
 @app.post("/ask")
 async def ask(request: Request):
