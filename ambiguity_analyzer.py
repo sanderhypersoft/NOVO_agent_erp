@@ -80,11 +80,12 @@ class AmbiguityAnalyzer:
             semantic["states"].append("venda_concluida")
             
         # 7. Títulos financeiros sem estado → Assume "em aberto"
+        # Se 'excluido' está nos estados, NÃO força 'em_aberto'
         if ("pagar" in resolved_entities or "receber" in resolved_entities) and not resolved_states:
-             if "excluido" not in resolved_states:
+            if "excluido" not in resolved_states:
                 assumptions.append("Estado não especificado - considerando apenas títulos em aberto (A)")
                 semantic["states"].append("em_aberto")
-
+        
         # 8. Auditoria sem alvo específico → Assume contexto atual
         if "usuario" in resolved_entities and not resolved_metrics:
             assumptions.append("Consulta de auditoria - listando últimos eventos por usuário")

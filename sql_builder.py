@@ -51,6 +51,9 @@ class SQLBuilder:
         states = semantic.get("states", [])
         time_refs = semantic.get("time_refs", [])
         
+        # Determine if we are in aggregation mode
+        is_aggregation = intent_type == "aggregation" or len(metrics) > 0
+
         if not entities:
             raise ValueError("Nenhuma entidade identificada na pergunta")
 
@@ -90,7 +93,7 @@ class SQLBuilder:
         # Se temos agregações, as entidades adicionais (não usadas na métrica) viram dimensões
         # Se não temos agregações, é uma listagem detalhada
         
-        if aggregations:
+        if is_aggregation:
             # Modo Agregação: entidades que não são a fonte da métrica viram GROUP BY
             for entity in entities:
                 # Pula a entidade que já foi usada em QUALQUER métrica
