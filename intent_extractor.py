@@ -115,6 +115,17 @@ class IntentExtractor:
                 "end": ontem.strftime("%Y-%m-%d")
             })
 
+        # Regex para "últimos X dias"
+        match_days = re.search(r"ultimos (\d+) dias", q)
+        if match_days:
+            days = int(match_days.group(1))
+            start_date = today - timedelta(days=days)
+            intent["time_candidates"].append({
+                "label": "intervalo_relativo",
+                "start": start_date.strftime("%Y-%m-%d"),
+                "end": today.strftime("%Y-%m-%d")
+            })
+
         return intent
 
     # -------------------------

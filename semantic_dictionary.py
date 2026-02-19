@@ -64,9 +64,17 @@ class SemanticDictionary:
                 regras=["venda_concluida"],
                 observacoes=["Inerentemente parcial por exigir agregação"],
             ),
-            "quantidade": SemanticConcept(tipo="metrica", descricao="Contagem de ocorrências"),
+            "quantidade": SemanticConcept(
+                tipo="metrica", 
+                descricao="Contagem de ocorrências",
+                aliases=["quantidade", "quanto", "quantos", "numero de"]
+            ),
             "valor_unitario": SemanticConcept(tipo="metrica", descricao="Preço por unidade"),
-            "valor_total": SemanticConcept(tipo="metrica", descricao="Valor bruto de uma operação"),
+            "valor_total": SemanticConcept(
+                tipo="metrica", 
+                descricao="Valor bruto de uma operação",
+                aliases=["valor total", "valor", "vlr", "soma dos valores"]
+            ),
             "inadimplencia": SemanticConcept(
                 tipo="metrica",
                 descricao="Valor total de títulos a receber vencidos e não pagos",
@@ -90,6 +98,11 @@ class SemanticDictionary:
                 descricao="Profissional técnico",
                 aliases=["tecnico", "tecnicos", "colaborador"]
             ),
+            "usuario": SemanticConcept(
+                tipo="entidade",
+                descricao="Usuário do sistema",
+                aliases=["usuario", "usuarios", "quem fez", "quem realizou"]
+            ),
             "fornecedor": SemanticConcept(tipo="entidade", descricao="Cadastro de fornecedores"),
             "materiais_consumidos": SemanticConcept(
                 tipo="metrica", 
@@ -104,13 +117,17 @@ class SemanticDictionary:
             "excluido": SemanticConcept(
                 tipo="estado_negocio", 
                 descricao="Registros marcados como excluídos",
-                aliases=["apagado", "deletado"],
+                aliases=["apagado", "deletado", "excluida", "excluidas", "excluidos"],
                 regras=["exclusao_logica"]
             ),
             "ultimas": SemanticConcept(
                 tipo="modificador",
                 descricao="Ordena descendente por data e limita resultados",
                 regras=["ordenar_data_desc", "limite_10"]
+            ),
+            "intervalo_relativo": SemanticConcept(
+                tipo="tempo",
+                descricao="Intervalo de tempo dinâmico (ex: últimos 30 dias)"
             )
         }
 

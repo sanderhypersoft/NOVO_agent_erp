@@ -76,14 +76,23 @@ class OperationalDictionary:
         self.entity_map = {
             "venda": "VENDAS", 
             "cliente": "CLIENTES", 
-            "produto": "PRODUTOS",
+            "pagar": "PAGAR",
             "os": "ORDEMSERVICOS",
-            "tecnico": "USUARIOS"
+            "tecnico": "USUARIOS",
+            "usuario": "USUARIOS"
         }
         self.metrics["materiais_consumidos"] = MetricDefinition(
             sql_template="SUM({table}.QTD)",
             target_role=None,
             required_context="itensos"
+        )
+        self.metrics["quantidade"] = MetricDefinition(
+            sql_template="COUNT({table}.CONTROLE)",
+            target_role=None
+        )
+        self.metrics["valor_total"] = MetricDefinition(
+            sql_template="SUM({table}.{field})",
+            target_role="VALUE"
         )
 
     def get_table(self, entity: str) -> Optional[str]:
@@ -132,7 +141,9 @@ class OperationalDictionary:
             ("VENDAS", "CLIENTES"): "VENDAS.CLIENTE = CLIENTES.CODIGO",
             ("ORDEMSERVICOS", "ITENSOS"): "ORDEMSERVICOS.CTROS = ITENSOS.CTROS",
             ("ITENSOS", "PRODUTOS"): "ITENSOS.PRODUTO = PRODUTOS.CODIGO",
-            ("ORDEMSERVICOS", "USUARIOS"): "ORDEMSERVICOS.VENDEDOR = USUARIOS.CONTROLE"
+            ("ORDEMSERVICOS", "USUARIOS"): "ORDEMSERVICOS.VENDEDOR = USUARIOS.CONTROLE",
+            ("PAGAR", "USUARIOS"): "PAGAR.USUARIO = USUARIOS.CONTROLE",
+            ("EXC_PAGAR", "EXC_USUARIO"): "EXC_PAGAR.CONTROLE = EXC_USUARIO.CTRMOVI AND EXC_USUARIO.MOVI = 'PG'"
         }
         return bridges.get((table_a.upper(), table_b.upper())) or bridges.get((table_b.upper(), table_a.upper()))
 

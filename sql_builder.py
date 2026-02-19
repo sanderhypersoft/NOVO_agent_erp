@@ -93,9 +93,15 @@ class SQLBuilder:
         if aggregations:
             # Modo Agregação: entidades que não são a fonte da métrica viram GROUP BY
             for entity in entities:
-                # Pula a entidade que já foi usada na métrica (ex: "venda" em "faturamento")
-                metric_def = self.dictionary.metrics.get(metrics[0]) if metrics else None
-                if metric_def and entity == metric_def.required_context:
+                # Pula a entidade que já foi usada em QUALQUER métrica
+                is_metric_source = False
+                for m in metrics:
+                    metric_def = self.dictionary.metrics.get(m)
+                    if metric_def and entity == metric_def.required_context:
+                        is_metric_source = True
+                        break
+                
+                if is_metric_source:
                     continue  # Não adiciona como dimensão, já está na agregação
                 
                 cols = self.dictionary.get_default_columns(entity)
