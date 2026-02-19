@@ -30,6 +30,8 @@ async def ask(request: Request):
             "question": question,
             "sql": context.data.get("sql"),
             "state": context.state.name,
+            "summary": context.data.get("summary"),
+            "steps_results": context.data.get("steps_results"),
             "results": context.data.get("results"),
             "columns": context.data.get("columns"),
             "note": context.data.get("results_note"),

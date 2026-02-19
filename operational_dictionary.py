@@ -79,7 +79,9 @@ class OperationalDictionary:
             "pagar": "PAGAR",
             "os": "ORDEMSERVICOS",
             "tecnico": "USUARIOS",
-            "usuario": "USUARIOS"
+            "usuario": "USUARIOS",
+            "exclusao_pagar": "EXC_PAGAR",
+            "exclusao_usuario": "EXC_USUARIO"
         }
         self.metrics["materiais_consumidos"] = MetricDefinition(
             sql_template="SUM({table}.QTD)",
@@ -131,7 +133,7 @@ class OperationalDictionary:
     def get_date_column(self, table_name: str) -> Optional[str]:
         col = self.get_field_by_role(table_name, "TEMPORAL")
         if col: return col
-        fallbacks = {"VENDAS": "DATA", "RECEBER": "EMISSAO", "PAGAR": "EMISSAO"}
+        fallbacks = {"VENDAS": "DATA", "RECEBER": "EMISSAO", "PAGAR": "EMISSAO", "EXC_PAGAR": "EMISSAO"}
         return fallbacks.get(table_name.upper())
 
     def get_join_condition(self, table_a: str, table_b: str) -> Optional[str]:
@@ -143,7 +145,8 @@ class OperationalDictionary:
             ("ITENSOS", "PRODUTOS"): "ITENSOS.PRODUTO = PRODUTOS.CODIGO",
             ("ORDEMSERVICOS", "USUARIOS"): "ORDEMSERVICOS.VENDEDOR = USUARIOS.CONTROLE",
             ("PAGAR", "USUARIOS"): "PAGAR.USUARIO = USUARIOS.CONTROLE",
-            ("EXC_PAGAR", "EXC_USUARIO"): "EXC_PAGAR.CONTROLE = EXC_USUARIO.CTRMOVI AND EXC_USUARIO.MOVI = 'PG'"
+            ("EXC_PAGAR", "EXC_USUARIO"): "EXC_PAGAR.CONTROLE = EXC_USUARIO.CTRMOVI AND EXC_USUARIO.MOVI = 'PG'",
+            ("EXC_PAGAR", "USUARIOS"): "EXC_PAGAR.USUARIO = USUARIOS.CONTROLE"
         }
         return bridges.get((table_a.upper(), table_b.upper())) or bridges.get((table_b.upper(), table_a.upper()))
 

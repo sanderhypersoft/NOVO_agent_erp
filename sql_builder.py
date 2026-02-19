@@ -58,7 +58,14 @@ class SQLBuilder:
             raise ValueError("Nenhuma entidade identificada na pergunta")
 
         # 1. Determinar Tabelas Envolvidas
-        tables = [self.dictionary.get_table(e) for e in entities if self.dictionary.get_table(e)]
+        tables = []
+        for e in entities:
+            t = self.dictionary.get_table(e)
+            if t == "PAGAR" and "excluido" in states:
+                t = "EXC_PAGAR"
+            if t:
+                tables.append(t)
+        
         tables = list(set(tables)) # Unificar
         
         # 2. Definir Colunas (SELECT)
@@ -73,30 +80,20 @@ class SQLBuilder:
         if metrics:
             for m in metrics:
                 # Determina a tabela de contexto para a métrica
-                # Se "venda" está nas entidades, usa VENDAS, senão tenta inferir do required_context
-                context_table = None
-                if "venda" in entities:
-                    context_table = self.dictionary.get_table("venda")
+                context_table = self._resolve_table_name("venda" if "venda" in entities else (entities[0] if entities else None), states)
                 
                 metric_sql = self.dictionary.get_metric_sql(m, table_name=context_table)
                 
                 if metric_sql:
                     select_parts.append(f"{metric_sql} AS {m.upper()}")
-                    # Verifica se é uma função de agregação primitiva
                     if any(agg in metric_sql.upper() for agg in ["SUM(", "COUNT(", "AVG(", "MAX(", "MIN("]):
                         aggregations.append(metric_sql)
                     else:
-                        # Se métrica não tem função (ex: valor_unitario), é dimensão
                         dimensions.append(metric_sql)
 
         # Processar Dimensões e Entidades
-        # Se temos agregações, as entidades adicionais (não usadas na métrica) viram dimensões
-        # Se não temos agregações, é uma listagem detalhada
-        
         if is_aggregation:
-            # Modo Agregação: entidades que não são a fonte da métrica viram GROUP BY
             for entity in entities:
-                # Pula a entidade que já foi usada em QUALQUER métrica
                 is_metric_source = False
                 for m in metrics:
                     metric_def = self.dictionary.metrics.get(m)
@@ -105,22 +102,21 @@ class SQLBuilder:
                         break
                 
                 if is_metric_source:
-                    continue  # Não adiciona como dimensão, já está na agregação
+                    continue
                 
                 cols = self.dictionary.get_default_columns(entity)
-                table_name = self.dictionary.get_table(entity)
+                table_name = self._resolve_table_name(entity, states)
                 
                 if cols and table_name:
                     for c in cols:
-                        if c != "*":  # Evita adicionar asterisco
+                        if c != "*":
                             full_col = f"{table_name}.{c}"
                             select_parts.append(full_col)
                             dimensions.append(full_col)
         else:
-            # Modo Detalhamento: lista colunas das entidades
             for entity in entities:
                 cols = self.dictionary.get_default_columns(entity)
-                table_name = self.dictionary.get_table(entity)
+                table_name = self._resolve_table_name(entity, states)
                 
                 if cols and table_name:
                     for c in cols:
@@ -169,7 +165,7 @@ class SQLBuilder:
         
         # Fallback: usa a primeira tabela Fato na ordem de prioridade
         if not primary_table:
-            priority_order = ["VENDAS", "RECEBER", "PAGAR", "ITENSV", "CLIENTES", "PRODUTOS"]
+            priority_order = ["VENDAS", "RECEBER", "PAGAR", "EXC_PAGAR", "ITENSV", "CLIENTES", "PRODUTOS"]
             unique_tables.sort(key=lambda x: priority_order.index(x) if x in priority_order else 999)
             primary_table = unique_tables[0]
         
@@ -241,14 +237,14 @@ class SQLBuilder:
         time_where_clauses = []
         for time_ref in time_refs:
             if isinstance(time_ref, dict):
-                # FIXED: Prioritize 'venda' for date if present in entities, regardless of order
-                entity_for_date = "venda" if "venda" in entities else entities[0]
-                table_name = self.dictionary.get_table(entity_for_date)
-                date_col = self.dictionary.get_date_column(table_name)
+                # FIXED: Use the primary table for date filtering to ensure audit tables like EXC_PAGAR are correctly restricted
+                # if the user didn't specify a different entity's date
+                table_for_date = primary_table
+                date_col = self.dictionary.get_date_column(table_for_date)
                 
-                if date_col and table_name:
+                if date_col:
                     time_where_clauses.append(
-                        f"{table_name}.{date_col} BETWEEN '{time_ref['start']}' AND '{time_ref['end']}'"
+                        f"{table_for_date}.{date_col} BETWEEN '{time_ref['start']}' AND '{time_ref['end']}'"
                     )
         where_clauses.extend(time_where_clauses)
 
@@ -292,3 +288,10 @@ class SQLBuilder:
             sql += order_by_clause
             
         return sql
+
+    def _resolve_table_name(self, entity, states):
+        if not entity: return None
+        t = self.dictionary.get_table(entity)
+        if t == "PAGAR" and "excluido" in states:
+            return "EXC_PAGAR"
+        return t

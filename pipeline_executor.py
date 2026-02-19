@@ -57,30 +57,115 @@ class PipelineExecutor:
             self.logger.log(context)
             return context
 
-        # 5. SQL BUILDER (Executa se OK ou PARTIAL)
-        # 8. Geração de SQL
+        # 5. MODO MULTI-STEP REASONING (Novo)
+        # Se a pergunta é complexa, podemos gerar múltiplos SQLs
+        # Por enquanto, focamos em um ciclo que tenta resolver sub-partes se necessário
+        
+        # 5.1 Geração do Primeiro SQL (ou Principal)
         context = self.sql_builder.run(context)
         context = self.sql_validator.run(context)
         
-        # 9. EXECUÇÃO (Novo na V3 - Real Time Local)
-        sql = context.data.get("sql")
-        if sql and context.state == AgentState.OK:
-            try:
-                from firebird_executor import FirebirdExecutor
-                executor = FirebirdExecutor()
-                results = executor.execute(sql)
-                context.data["results"] = results
-                if results:
-                    context.data["columns"] = list(results[0].keys())
-                else:
-                    context.data["columns"] = []
-            except ImportError:
-                context.data["results_note"] = "Driver fdb não instalado. Execução real-time disponível apenas no modo LOCAL."
-            except Exception as e:
-                context.data["execution_error"] = str(e)
+        if context.state == AgentState.FAIL:
+             self.logger.log(context)
+             return context
 
+        # 6. EXECUÇÃO DO SQL ATUAL
+        self._execute_sql_step(context)
+
+        # 7. SYNTHESIS (Novo): Consolida resultados de múltiplos SQLs ou agregações
+        self._synthesize_results(context)
+        
         # FINAL: Logar Inteligência
         context = self.confidence_calculator.run(context)
         self.logger.log(context)
 
         return context
+
+    def _execute_sql_step(self, context: AgentContext):
+        sql = context.data.get("sql")
+        if sql and context.state in [AgentState.OK, AgentState.PARTIAL]:
+            try:
+                from firebird_executor import FirebirdExecutor
+                executor = FirebirdExecutor()
+                results = executor.execute(sql)
+                
+                # Acumula resultados (suporta múltiplos passos no futuro)
+                if "steps_results" not in context.data:
+                    context.data["steps_results"] = []
+                
+                context.data["steps_results"].append({
+                    "sql": sql,
+                    "results": results
+                })
+
+                # Define o resultado principal para compatibilidade com UI atual
+                if not context.data.get("results"):
+                    context.data["results"] = results
+                    if results:
+                        context.data["columns"] = list(results[0].keys())
+                    else:
+                        context.data["columns"] = []
+                
+            except ImportError:
+                context.data["results_note"] = "Driver fdb não instalado. Execução real-time disponível apenas no modo LOCAL."
+            except Exception as e:
+                context.data["execution_error"] = str(e)
+
+    def _synthesize_results(self, context: AgentContext):
+        """
+        Consolida os resultados técnicos em uma estrutura amigável para resposta.
+        Ex: Se temos uma lista de usuários com contagens, extrai o Total e o Top 1.
+        """
+        results = context.data.get("results")
+        if not results:
+            return
+
+        summary = {}
+        
+        # 1. Identifica métricas nos resultados
+        semantic = context.data.get("semantic_resolution", {})
+        entities = semantic.get("entities", [])
+        
+        if len(results) >= 1:
+            # Temos um conjunto de dados
+            total_count = 0
+            total_value = 0.0
+            top_entity_val = -1
+            top_entity_name = None
+
+            for row in results:
+                # Soma quantidade
+                if "QUANTIDADE" in row:
+                    val = int(row["QUANTIDADE"] or 0)
+                    total_count += val
+                    if val > top_entity_val:
+                        top_entity_val = val
+                        # Busca o nome da entidade (ex: USUARIO, NOME, CLIENTE)
+                        for k, v in row.items():
+                            if k not in ["QUANTIDADE", "VALOR_TOTAL"] and v:
+                                top_entity_name = str(v)
+                                break
+                
+                # Soma valor
+                if "VALOR_TOTAL" in row:
+                    total_value += float(row["VALOR_TOTAL"] or 0)
+
+            # Se for apenas uma linha e tiver métricas, o total é o valor da linha
+            if len(results) == 1:
+                row = results[0]
+                summary["total_quantidade"] = int(row.get("QUANTIDADE") or 0) if "QUANTIDADE" in row else None
+                summary["valor_consolidado"] = float(row.get("VALOR_TOTAL") or 0) if "VALOR_TOTAL" in row else None
+            else:
+                # Resultados agregados de múltiplas linhas
+                if total_count > 0:
+                    summary["total_quantidade"] = total_count
+                if total_value > 0:
+                    summary["valor_consolidado"] = total_value
+                if top_entity_name:
+                    summary["destaque"] = {
+                        "valor": top_entity_val,
+                        "nome": top_entity_name,
+                        "contexto": "usuario_com_mais_acoes" if "usuario" in entities else "top_resultado"
+                    }
+
+        context.data["summary"] = summary
