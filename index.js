@@ -116,6 +116,14 @@ function addAiResponse(data) {
         html += `<div class="error-msg">❌ Erro na execução: ${data.execution_error}</div>`;
     }
 
+    if (data.errors && data.errors.length > 0) {
+        html += `<div class="error-msg">
+            <strong>❌ Erros do Pipeline:</strong>
+            <ul>${data.errors.map(e => `<li>${e}</li>`).join('')}</ul>
+            <button onclick='alert(JSON.stringify(${JSON.stringify(data.debug)}, null, 2))' class="debug-btn">Ver Diagnóstico Técnico</button>
+        </div>`;
+    }
+
     html += `</div>`;
     msgDiv.innerHTML = html;
 

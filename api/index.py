@@ -40,7 +40,9 @@ async def ask(request: Request):
             "debug": {
                 "intent": context.data.get("intent"),
                 "semantic": context.data.get("semantic_resolution"),
-                "concepts_loaded": len(executor.semantic_dictionary.concepts) if hasattr(executor, 'semantic_dictionary') else 0
+                "concepts_loaded": len(executor.semantic_dictionary.concepts) if hasattr(executor, 'semantic_dictionary') else 0,
+                "schema_exists": os.path.exists("master_schema.json"),
+                "root_files": os.listdir(".") if os.path.exists(".") else []
             }
         }
     except Exception as e:
