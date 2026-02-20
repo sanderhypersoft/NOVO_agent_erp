@@ -2,7 +2,7 @@ from pipeline_executor import PipelineExecutor
 from agent_state import AgentState
 
 executor = PipelineExecutor()
-question = "Quero ver as contas a pagar"
+question = "Quais as ultimas contas a pagar que foram excluídas"
 context = executor.run(question)
 
 print(f"--- DEBUG PIPELINE ---")

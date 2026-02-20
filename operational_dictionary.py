@@ -79,6 +79,8 @@ class OperationalDictionary:
             "pagar": "PAGAR",
             "os": "ORDEMSERVICOS",
             "tecnico": "USUARIOS",
+            "tecnicos": "USUARIOS",
+            "itens": "ITENSOS",
             "usuario": "USUARIOS",
             "exclusao_pagar": "EXC_PAGAR",
             "exclusao_usuario": "EXC_USUARIO"

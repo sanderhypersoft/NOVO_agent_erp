@@ -80,7 +80,16 @@ class SQLBuilder:
         if metrics:
             for m in metrics:
                 # Determina a tabela de contexto para a métrica
-                context_table = self._resolve_table_name("venda" if "venda" in entities else (entities[0] if entities else None), states)
+                metric_def = self.dictionary.metrics.get(m)
+                req_context = metric_def.required_context if metric_def else None
+                
+                # Prioridade: required_context da métrica > lógica original
+                context_table = None
+                if req_context:
+                    context_table = self.dictionary.get_table(req_context)
+                
+                if not context_table:
+                    context_table = self._resolve_table_name("venda" if "venda" in entities else (entities[0] if entities else None), states)
                 
                 metric_sql = self.dictionary.get_metric_sql(m, table_name=context_table)
                 
@@ -170,9 +179,15 @@ class SQLBuilder:
             primary_table = unique_tables[0]
         
         # Reordena unique_tables para colocar primary_table primeiro
+        if not unique_tables:
+            print(f"DEBUG SQLBuilder: unique_tables vazio para entidades {entities}")
+            raise ValueError(f"Não foi possível identificar tabelas para as entidades: {entities}")
+
         if primary_table in unique_tables:
             unique_tables.remove(primary_table)
             unique_tables.insert(0, primary_table)
+        
+        print(f"DEBUG SQLBuilder: Unique Tables: {unique_tables}, Primary: {primary_table}")
         
         from_clause = primary_table
         joined_tables = {primary_table}
@@ -249,14 +264,14 @@ class SQLBuilder:
         # 4.1 AUTO-CORREÇÃO: Injetar WHERE 1=1 em tabelas sensíveis se faltar filtro
         # Isso evita que o SQLValidator bloqueie a query e permite o pipeline planejar amostras.
         sensitive_tables = ["PAGAR", "RECEBER", "VENDAS", "EXC_PAGAR"]
+        print(f"DEBUG SQLBuilder: checking sensitive: {unique_tables}, current where: {where_clauses}")
         if any(t.upper() in unique_tables for t in sensitive_tables):
             if not where_clauses:
                 where_clauses.append("1=1")
-                # Sinaliza no contexto que foi aplicada auto-correção
-                # context.data["auto_corrected_where"] = True # O SQLBuilder não tem acesso ao context aqui, 
-                # mas o PipelineExecutor verá o WHERE 1=1 no SQL final.
+                print(f"DEBUG SQLBuilder: Injected 1=1")
 
         where_clauses.extend(time_where_clauses)
+        print(f"DEBUG SQLBuilder: Final where_clauses: {where_clauses}")
 
         # 5. Montagem Final
         # Verifica Modificadores (LIMIT / ORDER BY)

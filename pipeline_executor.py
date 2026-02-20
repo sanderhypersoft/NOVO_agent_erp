@@ -111,8 +111,12 @@ class PipelineExecutor:
                     # Força FIRST 100 se já não houver limite
                     if "FIRST " not in sql.upper():
                         sql = sql.replace("SELECT ", "SELECT FIRST 100 ", 1)
+                        context.data["sql"] = sql # Atualiza para que a UI mostre o SQL real executado
+                    
+                    print(f"DEBUG PipelineExecutor: Protected SQL: {sql}")
 
                 results = executor.execute(sql)
+                print(f"DEBUG PipelineExecutor: Results count: {len(results) if results else 0}")
                 
                 if "steps_results" not in context.data:
                     context.data["steps_results"] = []
