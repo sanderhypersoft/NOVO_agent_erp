@@ -92,11 +92,11 @@ class SemanticDictionary:
             "produto": SemanticConcept(tipo="entidade", descricao="Cadastro de produto"),
             "receber": SemanticConcept(tipo="entidade", descricao="Títulos de contas a receber"),
             "pagar": SemanticConcept(tipo="entidade", descricao="Títulos de contas a pagar"),
-            "os": SemanticConcept(tipo="entidade", descricao="Ordem de Serviço"),
+            "os": SemanticConcept(tipo="entidade", descricao="Ordem de Serviço", aliases=["os", "os."]),
             "tecnico": SemanticConcept(
                 tipo="entidade", 
                 descricao="Profissional técnico",
-                aliases=["tecnico", "tecnicos", "colaborador"]
+                aliases=["tecnico", "tecnicos", "colaborador", "tecninos", "tecnic"]
             ),
             "usuario": SemanticConcept(
                 tipo="entidade",
@@ -107,7 +107,7 @@ class SemanticDictionary:
             "materiais_consumidos": SemanticConcept(
                 tipo="metrica", 
                 descricao="Materiais utilizados em operações",
-                aliases=["materiais consumidos", "consumo", "consumidos", "materias consumidos", "materias"],
+                aliases=["materiais consumidos", "consumo", "consumidos", "materias consumidos", "materias", "itens mais consumidos", "itens consumidos", "item mais consumido"],
                 entidades=["os", "itensos", "produto"]
             ),
             "hoje": SemanticConcept(tipo="tempo", descricao="Data atual"),
@@ -128,6 +128,12 @@ class SemanticDictionary:
             "intervalo_relativo": SemanticConcept(
                 tipo="tempo",
                 descricao="Intervalo de tempo dinâmico (ex: últimos 30 dias)"
+            ),
+            "pagamento": SemanticConcept(
+                tipo="entidade",
+                descricao="Títulos de contas recebidos (pagamentos feitos pelos clientes)",
+                entidades=["recebidas"],
+                aliases=["pagamento", "pagamentos", "recebidas", "titulos recebidos", "pagaram"]
             )
         }
 
@@ -147,7 +153,17 @@ class SemanticDictionary:
                         )
 
     def get(self, concept_name: str) -> Optional[SemanticConcept]:
-        return self.concepts.get(concept_name)
+        concept_name = concept_name.lower().strip()
+        # Primeiro tenta match exato
+        if concept_name in self.concepts:
+            return self.concepts[concept_name]
+        
+        # Depois tenta por aliases
+        for key, concept in self.concepts.items():
+            if concept_name in [alias.lower().strip() for alias in concept.aliases]:
+                return concept
+                
+        return None
 
     def has_metric(self, name: str) -> bool:
         concept = self.get(name)

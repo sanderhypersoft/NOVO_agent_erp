@@ -25,10 +25,11 @@ class OperationalDictionary:
             "os_item_nao_cancelado": "CANCELADO <> 'S'"
         }
 
+        # Carrega fallbacks primeiro para garantir mapeamentos básicos
+        self._load_fallbacks()
+        
         if use_supabase:
             self._load_from_supabase()
-        else:
-            self._load_fallbacks()
 
         # Sincronização Dinâmica: Adiciona tabelas do schema se não no mapa
         for table in self.data.get("tables", {}):
@@ -83,7 +84,9 @@ class OperationalDictionary:
             "itens": "ITENSOS",
             "usuario": "USUARIOS",
             "exclusao_pagar": "EXC_PAGAR",
-            "exclusao_usuario": "EXC_USUARIO"
+            "exclusao_usuario": "EXC_USUARIO",
+            "pagamento": "RECEBIDAS",
+            "recebidas": "RECEBIDAS"
         }
         self.metrics["materiais_consumidos"] = MetricDefinition(
             sql_template="SUM({table}.QTD)",
@@ -117,20 +120,29 @@ class OperationalDictionary:
     def get_metric_sql(self, metric: str, table_name: str = None) -> Optional[str]:
         definition = self.metrics.get(metric)
         if not definition: return None
-        if not definition.target_role: return definition.sql_template
         
         target_table = table_name or (self.get_table(definition.required_context) if definition.required_context else None)
-        if not target_table: return None
-
-        field_name = self.get_field_by_role(target_table, definition.target_role)
-        if field_name:
-            return definition.sql_template.format(table=target_table, field=field_name)
+        if not target_table: 
+            # Se não tem tabela, retorna sem formatar ou None se exigir {table}
+            if "{table}" in definition.sql_template: return None
+            return definition.sql_template
         
-        # Fallback para métricas fixas (sem field_role)
-        if "{table}" in definition.sql_template and not field_name:
-             return definition.sql_template.format(table=target_table)
+        # Se tem target_role, resolve o campo primeiro
+        field_name = None
+        if definition.target_role:
+            field_name = self.get_field_by_role(target_table, definition.target_role)
+        
+        # Montagem Final: Tenta formatar com table e field se disponíveis
+        sql = definition.sql_template
+        if "{table}" in sql and "{field}" in sql:
+            if target_table and field_name:
+                return sql.format(table=target_table, field=field_name)
+            return None # Requisito incompleto
+            
+        if "{table}" in sql:
+            return sql.format(table=target_table)
              
-        return definition.sql_template
+        return sql
 
     def get_date_column(self, table_name: str) -> Optional[str]:
         col = self.get_field_by_role(table_name, "TEMPORAL")
@@ -146,9 +158,15 @@ class OperationalDictionary:
             ("ORDEMSERVICOS", "ITENSOS"): "ORDEMSERVICOS.CTROS = ITENSOS.CTROS",
             ("ITENSOS", "PRODUTOS"): "ITENSOS.PRODUTO = PRODUTOS.CODIGO",
             ("ORDEMSERVICOS", "USUARIOS"): "ORDEMSERVICOS.VENDEDOR = USUARIOS.CONTROLE",
+            ("ORDEMSERVICOS", "VENDAS"): "ORDEMSERVICOS.CTRVENDA = VENDAS.CTRVENDA",
+            ("ORDEMSERVICOS", "CLIENTES"): "ORDEMSERVICOS.CLIENTE = CLIENTES.CODIGO",
             ("PAGAR", "USUARIOS"): "PAGAR.USUARIO = USUARIOS.CONTROLE",
             ("EXC_PAGAR", "EXC_USUARIO"): "EXC_PAGAR.CONTROLE = EXC_USUARIO.CTRMOVI AND EXC_USUARIO.MOVI = 'PG'",
-            ("EXC_PAGAR", "USUARIOS"): "EXC_PAGAR.USUARIO = USUARIOS.CONTROLE"
+            ("EXC_PAGAR", "USUARIOS"): "EXC_PAGAR.USUARIO = USUARIOS.CONTROLE",
+            ("RECEBER", "RECEBIDAS"): "RECEBER.CONTROLE = RECEBIDAS.CTRRECEB",
+            ("CLIENTES", "RECEBIDAS"): "CLIENTES.CODIGO = RECEBIDAS.CLIENTE",
+            ("VENDAS", "RECEBIDAS"): "VENDAS.CTRVENDA = RECEBIDAS.CTRVENDA",
+            ("VENDAS", "RECEBER"): "VENDAS.CTRVENDA = RECEBER.CTRVENDA"
         }
         return bridges.get((table_a.upper(), table_b.upper())) or bridges.get((table_b.upper(), table_a.upper()))
 

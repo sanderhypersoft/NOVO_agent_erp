@@ -16388,6 +16388,14 @@
         "meaning": "Linha digitável do boleto",
         "join_hint": "Pagamento",
         "confidence": 0.95
+      },
+      {
+        "field": "PAGTO_AVISO_USAR_RECEBIDAS",
+        "type": "WARNING",
+        "role": "INSTRUCTION",
+        "meaning": "ATENÇÃO: Não use PAGTO nesta tabela. Para pagamentos e atrasos, faça JOIN com RECEBIDAS, que possui a coluna PAGTO.",
+        "join_hint": "Join com RECEBIDAS via RECEBER.CONTROLE = RECEBIDAS.CTRRECEB",
+        "confidence": 1.0
       }
     ],
     "RECEBER_PARC": [
@@ -16582,8 +16590,8 @@
       {
         "field": "PAGTO",
         "type": "TEXT",
-        "role": "TEMPORAL",
-        "meaning": "Data do pagamento",
+        "role": "ACTUAL_PAYMENT_DATE",
+        "meaning": "Data efetiva do pagamento realizado pelo cliente. Use para calcular atrasos junto com VENCTO.",
         "join_hint": "Filtro temporal",
         "confidence": 0.95
       },

@@ -174,14 +174,18 @@ class SQLBuilder:
         
         # Fallback: usa a primeira tabela Fato na ordem de prioridade
         if not primary_table:
-            priority_order = ["VENDAS", "RECEBER", "PAGAR", "EXC_PAGAR", "ITENSV", "CLIENTES", "PRODUTOS"]
-            unique_tables.sort(key=lambda x: priority_order.index(x) if x in priority_order else 999)
+            if not unique_tables:
+                print(f"DEBUG SQLBuilder: unique_tables vazio para entidades {entities}")
+                raise ValueError(f"Não foi possível identificar tabelas para as dimensões: {entities}")
+            
+            # Ranking de tabelas principais para guiar o JOIN recursivo
+            priority_order = ["ORDEMSERVICOS", "VENDAS", "RECEBER", "PAGAR", "EXC_PAGAR", "ITENSOS", "ITENSV", "CLIENTES", "PRODUTOS", "USUARIOS"]
+            
+            # Ordenação segura: evita erro se a tabela não estiver no priority_order
+            unique_tables.sort(key=lambda x: priority_order.index(x.upper()) if x.upper() in priority_order else 999)
             primary_table = unique_tables[0]
-        
-        # Reordena unique_tables para colocar primary_table primeiro
-        if not unique_tables:
-            print(f"DEBUG SQLBuilder: unique_tables vazio para entidades {entities}")
-            raise ValueError(f"Não foi possível identificar tabelas para as entidades: {entities}")
+            
+        print(f"DEBUG SQLBuilder: Table Mapping - Unique: {unique_tables}, Primary: {primary_table}")
 
         if primary_table in unique_tables:
             unique_tables.remove(primary_table)
@@ -285,6 +289,20 @@ class SQLBuilder:
             date_col = self.dictionary.get_date_column(primary_table)
             if date_col:
                 order_by_clause = f" ORDER BY {primary_table}.{date_col} DESC"
+
+        # Lógica de TOP-N e Ordenação Automática para Métricas
+        is_top_request = any(kw in intent.get("raw_question", "").lower() for kw in ["mais ", "maiores ", "melhores ", "top "])
+        if is_top_request and aggregations and not order_by_clause:
+            # Ordena pela primeira métrica encontrada de forma descendente
+            metric_col = aggregations[0]
+            # Extrai apenas a expressão (ex: SUM(X)) se houver alias
+            if " AS " in metric_col.upper():
+                metric_col = metric_col.upper().split(" AS ")[0].strip()
+            order_by_clause = f" ORDER BY {metric_col} DESC"
+            
+            # Se não houver limit explícito (como 'ultimas'), força um FIRST 10 para o Top
+            if not limit_clause:
+                limit_clause = "FIRST 10"
 
         # Special Case: Exclusão Financeira
         # Se 'exclusoes' está nos estados, precisamos selecionar quem excluiu e o motivo

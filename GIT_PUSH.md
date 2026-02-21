@@ -1,8 +1,3 @@
-# Comandos para Atualização (Copiar e Colar)
-
-Para enviar todas as alterações locais para o servidor (Vercel) agora mesmo, abra o terminal e execute:
-
-```powershell
 cd "c:\Users\HYPERSOFT\Documents\NOVO_agent_erp"
 git add .
 git commit -m "Evolução V4: Estabilização do Motor SQL e Mapeamento Real"

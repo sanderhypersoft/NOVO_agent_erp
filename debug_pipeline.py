@@ -2,7 +2,8 @@ from pipeline_executor import PipelineExecutor
 from agent_state import AgentState
 
 executor = PipelineExecutor()
-question = "Quais as ultimas contas a pagar que foram excluídas"
+import sys
+question = sys.argv[1] if len(sys.argv) > 1 else "Quais as ultimas contas a pagar que foram excluídas"
 context = executor.run(question)
 
 print(f"--- DEBUG PIPELINE ---")
